@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install)",
+      "Bash(cat:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"\n$content = Get-Content ''src/core/AutoSaver.ts'' -Raw\n$newContent = $content -replace ''            \\{\\r?\\n          \\\\);'', ''            {\n              text: conversationText,\n              source: ''''agent-runtime'''',\n              project_id: this.config.userId,\n              metadata: {\n                importance: importance,\n                timestamp: turn.timestamp,\n                tier: this.config.tier,\n                agent_id: this.config.agentId,\n                classification_model: CLASSIFICATION_MODELS[this.config.tier],\n              },\n            }\n          );''\n$newContent = $newContent -replace ''memoryId: response.memoryId,\\r?\\n        importance,'', ''memoryId: response.id,\n        importance: response.metadata?.importance ?? importance,''\n$newContent = $newContent -replace ''return response;\\r?\\n    \\} catch \\\\(error\\\\) \\{\\r?\\n      this.config.logger.error\\\\(''''Failed to save conversation'''', \\{ error \\}\\\\);'', ''return {\n        success: true,\n        memoryId: response.id,\n        importance: response.metadata?.importance ?? importance,\n      };\n    } catch (error) {\n      this.config.logger.error(''''Failed to save conversation'''', { error });''\nSet-Content ''src/core/AutoSaver.ts'' -Value $newContent -NoNewline\nWrite-Host ''File updated''\n\")",
+      "Bash(powershell -Command:*)",
+      "Bash(node tests/load/enterprise-load-test.js:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run test:unit:*)",
+      "Bash(npm run test:integration:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

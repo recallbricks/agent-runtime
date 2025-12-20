@@ -1,0 +1,6 @@
+{
+  "/page": "app/page.js",
+  "/demo/system-monitor/page": "app/demo/system-monitor/page.js",
+  "/api/system/telemetry/route": "app/api/system/telemetry/route.js",
+  "/api/memories/recall/route": "app/api/memories/recall/route.js"
+}

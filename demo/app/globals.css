@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(39, 39, 42, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 113, 122, 0.8);
+}
+
+/* Glassmorphism utilities */
+@layer utilities {
+  .glass {
+    @apply bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50;
+  }
+
+  .glass-hover {
+    @apply hover:bg-zinc-800/60 hover:border-zinc-700/50 transition-all duration-300;
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 30px rgba(236, 72, 153, 0.15);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-cyan-400;
+  }
+}
+
+/* Monospace font for data */
+.font-mono-data {
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pulse animation for live indicator */
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.live-indicator {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth number transitions */
+.number-transition {
+  transition: all 0.3s ease-out;
+}
+
+/* Event stream scroll animation */
+@keyframes scroll-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.event-enter {
+  animation: scroll-in 0.3s ease-out;
+}

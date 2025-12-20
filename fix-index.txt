@@ -1,0 +1,11 @@
+In src/index.ts, remove these lines:
+
+export { TelemetryClient } from './api/TelemetryClient';
+
+And from the export block, remove:
+- TelemetryClient
+- TelemetryMetrics
+- TelemetryEvent  
+- TelemetryConfig
+
+All telemetry-related exports.

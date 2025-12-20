@@ -1,0 +1,587 @@
+{
+  "timestamp": "2025-12-11T23:39:46.867Z",
+  "configuration": {
+    "apiUrl": "https://recallbricks-api-clean.onrender.com",
+    "baselineConcurrency": 1000,
+    "capacityMultiplier": 1.5,
+    "targetConcurrency": 1500,
+    "sla": {
+      "maxLatencyP50": 500,
+      "maxLatencyP95": 2000,
+      "maxLatencyP99": 5000,
+      "maxErrorRate": 0.01,
+      "minThroughput": 100
+    }
+  },
+  "results": [
+    {
+      "scenario": "Memory Learn Endpoint - 150% Load",
+      "results": {
+        "duration": 64.295,
+        "requests": {
+          "total": 13849,
+          "success": 100,
+          "failed": 13749,
+          "timeout": 0
+        },
+        "throughput": 212.22490084765533,
+        "successRate": 0.007328691828508612,
+        "errorRate": 0.9926713081714914,
+        "latency": {
+          "min": 131,
+          "max": 45808,
+          "mean": 6530.64316599487,
+          "p50": 2900,
+          "p75": 5884,
+          "p90": 30000,
+          "p95": 30000,
+          "p99": 30000,
+          "p999": 30239
+        },
+        "memory": {
+          "initial": {
+            "timestamp": 1765495930422,
+            "heapUsed": 17123768,
+            "heapTotal": 34820096,
+            "external": 1980827,
+            "rss": 109600768
+          },
+          "final": {
+            "timestamp": 1765495992729,
+            "heapUsed": 464143152,
+            "heapTotal": 588992512,
+            "external": 12131396,
+            "rss": 922718208
+          },
+          "peak": {
+            "timestamp": 1765495992729,
+            "heapUsed": 464143152,
+            "heapTotal": 588992512,
+            "external": 12131396,
+            "rss": 922718208
+          }
+        },
+        "errors": [
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET",
+          "read ECONNRESET"
+        ]
+      },
+      "slaChecks": {
+        "latencyP50": {
+          "passed": false,
+          "value": 2900,
+          "threshold": 500,
+          "unit": "ms"
+        },
+        "latencyP95": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 2000,
+          "unit": "ms"
+        },
+        "latencyP99": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 5000,
+          "unit": "ms"
+        },
+        "errorRate": {
+          "passed": false,
+          "value": "99.27",
+          "threshold": "1.00",
+          "unit": "%"
+        },
+        "throughput": {
+          "passed": true,
+          "value": "212.22",
+          "threshold": 100,
+          "unit": "req/s"
+        }
+      },
+      "passed": false
+    },
+    {
+      "scenario": "Memory Recall Endpoint - 150% Load",
+      "results": {
+        "duration": 65.608,
+        "requests": {
+          "total": 14467,
+          "success": 0,
+          "failed": 14467,
+          "timeout": 0
+        },
+        "throughput": 219.53115473722715,
+        "successRate": 0,
+        "errorRate": 1,
+        "latency": {
+          "min": 187,
+          "max": 65710,
+          "mean": 6048.718739151565,
+          "p50": 3437,
+          "p75": 5418,
+          "p90": 13758,
+          "p95": 30000,
+          "p99": 30000,
+          "p999": 40808
+        },
+        "memory": {
+          "initial": {
+            "timestamp": 1765496000086,
+            "heapUsed": 33544328,
+            "heapTotal": 58675200,
+            "external": 8113367,
+            "rss": 858460160
+          },
+          "final": {
+            "timestamp": 1765496063703,
+            "heapUsed": 171527224,
+            "heapTotal": 431968256,
+            "external": 11441115,
+            "rss": 952971264
+          },
+          "peak": {
+            "timestamp": 1765496034685,
+            "heapUsed": 411142160,
+            "heapTotal": 503795712,
+            "external": 13333169,
+            "rss": 965783552
+          }
+        },
+        "errors": [
+          "TIMEOUT",
+          "TIMEOUT",
+          "HTTP 502",
+          "HTTP 502",
+          "HTTP 502",
+          "HTTP 502",
+          "read ECONNRESET",
+          "HTTP 502",
+          "HTTP 502",
+          "read ECONNRESET"
+        ]
+      },
+      "slaChecks": {
+        "latencyP50": {
+          "passed": false,
+          "value": 3437,
+          "threshold": 500,
+          "unit": "ms"
+        },
+        "latencyP95": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 2000,
+          "unit": "ms"
+        },
+        "latencyP99": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 5000,
+          "unit": "ms"
+        },
+        "errorRate": {
+          "passed": false,
+          "value": "100.00",
+          "threshold": "1.00",
+          "unit": "%"
+        },
+        "throughput": {
+          "passed": true,
+          "value": "219.53",
+          "threshold": 100,
+          "unit": "req/s"
+        }
+      },
+      "passed": false
+    },
+    {
+      "scenario": "Mixed Workload - 150% Load",
+      "results": {
+        "duration": 66.009,
+        "requests": {
+          "total": 14228,
+          "success": 230,
+          "failed": 13998,
+          "timeout": 0
+        },
+        "throughput": 213.18305079610357,
+        "successRate": 0.01499431495167709,
+        "errorRate": 0.9850056850483229,
+        "latency": {
+          "min": 807,
+          "max": 67712,
+          "mean": 7063.491117111996,
+          "p50": 3650,
+          "p75": 7019,
+          "p90": 22959,
+          "p95": 30000,
+          "p99": 30000,
+          "p999": 32694
+        },
+        "memory": {
+          "initial": {
+            "timestamp": 1765496070553,
+            "heapUsed": 27770168,
+            "heapTotal": 45830144,
+            "external": 2423126,
+            "rss": 348528640
+          },
+          "final": {
+            "timestamp": 1765496134519,
+            "heapUsed": 35871192,
+            "heapTotal": 108482560,
+            "external": 9356089,
+            "rss": 543301632
+          },
+          "peak": {
+            "timestamp": 1765496081105,
+            "heapUsed": 140527800,
+            "heapTotal": 193941504,
+            "external": 24313825,
+            "rss": 549314560
+          }
+        },
+        "errors": [
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT"
+        ]
+      },
+      "slaChecks": {
+        "latencyP50": {
+          "passed": false,
+          "value": 3650,
+          "threshold": 500,
+          "unit": "ms"
+        },
+        "latencyP95": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 2000,
+          "unit": "ms"
+        },
+        "latencyP99": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 5000,
+          "unit": "ms"
+        },
+        "errorRate": {
+          "passed": false,
+          "value": "98.50",
+          "threshold": "1.00",
+          "unit": "%"
+        },
+        "throughput": {
+          "passed": true,
+          "value": "213.18",
+          "threshold": 100,
+          "unit": "req/s"
+        }
+      },
+      "passed": false
+    },
+    {
+      "scenario": "Burst Traffic Simulation",
+      "results": {
+        "duration": 38.23,
+        "requests": {
+          "total": 7282,
+          "success": 44,
+          "failed": 7238,
+          "timeout": 0
+        },
+        "throughput": 186.52890400209262,
+        "successRate": 0.006170242602720516,
+        "errorRate": 0.9938297573972795,
+        "latency": {
+          "min": 872,
+          "max": 150745,
+          "mean": 9205.31580423503,
+          "p50": 5383,
+          "p75": 13270,
+          "p90": 21266,
+          "p95": 30000,
+          "p99": 30221,
+          "p999": 35547
+        },
+        "memory": {
+          "initial": {
+            "timestamp": 1765496141553,
+            "heapUsed": 33571880,
+            "heapTotal": 59461632,
+            "external": 7024473,
+            "rss": 518512640
+          },
+          "final": {
+            "timestamp": 1765496178311,
+            "heapUsed": 643179520,
+            "heapTotal": 758861824,
+            "external": 7337111,
+            "rss": 1169686528
+          },
+          "peak": {
+            "timestamp": 1765496178311,
+            "heapUsed": 643179520,
+            "heapTotal": 758861824,
+            "external": 7337111,
+            "rss": 1169686528
+          }
+        },
+        "errors": [
+          "HTTP 404",
+          "HTTP 404",
+          "HTTP 404",
+          "read ECONNRESET",
+          "HTTP 404",
+          "TIMEOUT",
+          "TIMEOUT",
+          "HTTP 502",
+          "HTTP 502",
+          "HTTP 502"
+        ]
+      },
+      "slaChecks": {
+        "latencyP50": {
+          "passed": false,
+          "value": 5383,
+          "threshold": 500,
+          "unit": "ms"
+        },
+        "latencyP95": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 2000,
+          "unit": "ms"
+        },
+        "latencyP99": {
+          "passed": false,
+          "value": 30221,
+          "threshold": 5000,
+          "unit": "ms"
+        },
+        "errorRate": {
+          "passed": false,
+          "value": "99.38",
+          "threshold": "1.00",
+          "unit": "%"
+        },
+        "throughput": {
+          "passed": true,
+          "value": "186.53",
+          "threshold": 100,
+          "unit": "req/s"
+        }
+      },
+      "passed": false
+    },
+    {
+      "scenario": "Sustained High Load",
+      "results": {
+        "duration": 128.971,
+        "requests": {
+          "total": 30864,
+          "success": 0,
+          "failed": 30864,
+          "timeout": 0
+        },
+        "throughput": 239.05374076342744,
+        "successRate": 0,
+        "errorRate": 1,
+        "latency": {
+          "min": 115,
+          "max": 224379,
+          "mean": 5982.121209172586,
+          "p50": 3440,
+          "p75": 5229,
+          "p90": 12607,
+          "p95": 30000,
+          "p99": 30000,
+          "p999": 42645
+        },
+        "memory": {
+          "initial": {
+            "timestamp": 1765496186041,
+            "heapUsed": 34319680,
+            "heapTotal": 363286528,
+            "external": 3189198,
+            "rss": 1087123456
+          },
+          "final": {
+            "timestamp": 1765496312535,
+            "heapUsed": 328905240,
+            "heapTotal": 534499328,
+            "external": 19788482,
+            "rss": 1136418816
+          },
+          "peak": {
+            "timestamp": 1765496243278,
+            "heapUsed": 529454200,
+            "heapTotal": 630935552,
+            "external": 4939402,
+            "rss": 1174478848
+          }
+        },
+        "errors": [
+          "HTTP 502",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "TIMEOUT",
+          "HTTP 502",
+          "HTTP 502"
+        ]
+      },
+      "slaChecks": {
+        "latencyP50": {
+          "passed": false,
+          "value": 3440,
+          "threshold": 500,
+          "unit": "ms"
+        },
+        "latencyP95": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 2000,
+          "unit": "ms"
+        },
+        "latencyP99": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 5000,
+          "unit": "ms"
+        },
+        "errorRate": {
+          "passed": false,
+          "value": "100.00",
+          "threshold": "1.00",
+          "unit": "%"
+        },
+        "throughput": {
+          "passed": true,
+          "value": "239.05",
+          "threshold": 100,
+          "unit": "req/s"
+        }
+      },
+      "passed": false
+    },
+    {
+      "scenario": "Large Payload Test",
+      "results": {
+        "duration": 63.678,
+        "requests": {
+          "total": 6811,
+          "success": 88,
+          "failed": 6723,
+          "timeout": 0
+        },
+        "throughput": 105.65658469173027,
+        "successRate": 0.012782401902497027,
+        "errorRate": 0.987217598097503,
+        "latency": {
+          "min": 132,
+          "max": 80883,
+          "mean": 6376.304250891795,
+          "p50": 1729,
+          "p75": 4548,
+          "p90": 30000,
+          "p95": 30000,
+          "p99": 30000,
+          "p999": 38167
+        },
+        "memory": {
+          "initial": {
+            "timestamp": 1765496319292,
+            "heapUsed": 26352160,
+            "heapTotal": 39800832,
+            "external": 5509547,
+            "rss": 293609472
+          },
+          "final": {
+            "timestamp": 1765496381274,
+            "heapUsed": 29004536,
+            "heapTotal": 171921408,
+            "external": 15078824,
+            "rss": 526016512
+          },
+          "peak": {
+            "timestamp": 1765496373271,
+            "heapUsed": 144638688,
+            "heapTotal": 196038656,
+            "external": 4399657,
+            "rss": 534134784
+          }
+        },
+        "errors": [
+          "HTTP 502",
+          "HTTP 502",
+          "TIMEOUT",
+          "TIMEOUT",
+          "HTTP 502",
+          "TIMEOUT",
+          "HTTP 502",
+          "HTTP 502",
+          "HTTP 502",
+          "HTTP 502"
+        ]
+      },
+      "slaChecks": {
+        "latencyP50": {
+          "passed": false,
+          "value": 1729,
+          "threshold": 500,
+          "unit": "ms"
+        },
+        "latencyP95": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 2000,
+          "unit": "ms"
+        },
+        "latencyP99": {
+          "passed": false,
+          "value": 30000,
+          "threshold": 5000,
+          "unit": "ms"
+        },
+        "errorRate": {
+          "passed": false,
+          "value": "98.72",
+          "threshold": "1.00",
+          "unit": "%"
+        },
+        "throughput": {
+          "passed": true,
+          "value": "105.66",
+          "threshold": 100,
+          "unit": "req/s"
+        }
+      },
+      "passed": false
+    }
+  ],
+  "summary": {
+    "totalScenarios": 6,
+    "passedScenarios": 0,
+    "enterpriseReady": false
+  }
+}

@@ -1,0 +1,43 @@
+# Source files (dist/ is published)
+src/
+tests/
+examples/
+
+# TypeScript source files
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+jest.config.js
+.eslintrc.js
+.prettierrc
+
+# Environment files
+.env
+.env.*
+
+# Development files
+node_modules/
+.git/
+.github/
+.claude/
+
+# Documentation (README.md is included by npm)
+docs/
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Test files
+coverage/
+*.test.ts
+*.spec.ts
+
+# Demo and examples
+demo/
+
+# Misc
+*.log
+*.tgz
+.DS_Store
+Thumbs.db
