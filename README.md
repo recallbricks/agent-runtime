@@ -185,6 +185,56 @@ Pattern detection
 Improved predictions
 ```
 
+### 7. Autonomous Agent Integration (v1.3.0+)
+
+Build autonomous agents with working memory, goal tracking, and metacognition:
+
+```typescript
+// Working Memory - Store temporary task state
+const session = await agent.createSession('task-123');
+await session.addEntry('current_step', 'analyzing data', 60000);
+await session.addEntry('findings', { patterns: ['A', 'B'] });
+
+// Goal Tracking - Monitor multi-step tasks
+const goal = await agent.trackGoal('data-analysis', [
+  'Load dataset',
+  'Clean data',
+  'Run analysis',
+  'Generate report',
+]);
+await goal.completeStep(1);
+console.log(`Progress: ${goal.progress * 100}%`);
+
+// Metacognition - Self-assess responses
+const assessment = await agent.assessResponse(
+  'The analysis shows a 15% improvement',
+  0.85
+);
+if (assessment.needsReflection) {
+  await agent.metacognition.triggerReflection();
+}
+```
+
+#### Autonomous Client Properties
+
+Access full autonomous capabilities through dedicated clients:
+
+```typescript
+// Working Memory Client
+const sessions = await agent.workingMemory.listSessions();
+const session = await agent.workingMemory.getSession('task-123');
+
+// Goals Client
+const goals = await agent.goals.listGoals();
+const goal = await agent.goals.getGoal('analysis-goal');
+await agent.goals.cancelGoal('cancelled-goal');
+
+// Metacognition Client
+const history = await agent.metacognition.getAssessmentHistory();
+const avgConfidence = await agent.metacognition.getAverageConfidence();
+await agent.metacognition.triggerReflection();
+```
+
 ## Integration Options
 
 ### 1. TypeScript/JavaScript SDK
@@ -407,6 +457,24 @@ const reflections = agent.getReflectionHistory();
 const version = agent.getVersion();
 ```
 
+### Autonomous Agent Methods (v1.3.0+)
+
+```typescript
+// Create working memory session
+const session = await agent.createSession('session-id');
+
+// Track a goal with steps
+const goal = await agent.trackGoal('goal-id', ['step1', 'step2']);
+
+// Assess response with metacognition
+const assessment = await agent.assessResponse(response, confidence);
+
+// Access autonomous clients directly
+agent.workingMemory  // WorkingMemoryClient
+agent.goals          // GoalsClient
+agent.metacognition  // MetacognitionClient
+```
+
 See [API Reference](./docs/api-reference.md) for complete documentation.
 
 ## Examples
@@ -472,6 +540,10 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for gu
 - [x] Ollama (local models) support
 - [x] ReflectionEngine for self-analysis
 - [x] ContextWeaver for advanced context building
+- [x] Autonomous Agent Integration (v1.3.0)
+  - [x] Working Memory Sessions
+  - [x] Goal Tracking
+  - [x] Metacognition Assessment
 - [ ] Streaming support
 - [ ] Telemetry and usage analytics
 - [ ] Advanced circuit breaker patterns

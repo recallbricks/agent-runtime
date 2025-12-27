@@ -389,3 +389,107 @@ export interface RecallResponse {
   categories?: Record<string, CategorySummary>;
   total: number;
 }
+
+// ============================================================================
+// Autonomous Agent Types
+// ============================================================================
+
+/**
+ * Working memory entry for temporary task state
+ */
+export interface WorkingMemoryEntry {
+  key: string;
+  value: unknown;
+  timestamp: string;
+  expiresAt?: string;
+}
+
+/**
+ * Working memory session for autonomous agents
+ */
+export interface WorkingMemorySession {
+  sessionId: string;
+  agentId: string;
+  createdAt: string;
+  entries: WorkingMemoryEntry[];
+  addEntry(key: string, value: unknown, ttl?: number): Promise<WorkingMemoryEntry>;
+  getEntry(key: string): Promise<WorkingMemoryEntry | undefined>;
+  removeEntry(key: string): Promise<boolean>;
+  clear(): Promise<void>;
+  persist(): Promise<void>;
+}
+
+/**
+ * Client for working memory operations
+ */
+export interface WorkingMemoryClient {
+  createSession(sessionId: string): Promise<WorkingMemorySession>;
+  getSession(sessionId: string): Promise<WorkingMemorySession | undefined>;
+  listSessions(): Promise<string[]>;
+}
+
+/**
+ * Goal step status
+ */
+export type GoalStepStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
+/**
+ * Goal overall status
+ */
+export type GoalStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * Individual step in a goal
+ */
+export interface GoalStep {
+  stepNumber: number;
+  description: string;
+  status: GoalStepStatus;
+  completedAt?: string;
+  failureReason?: string;
+}
+
+/**
+ * Result of tracking a goal
+ */
+export interface GoalTrackingResult {
+  goalId: string;
+  steps: GoalStep[];
+  status: GoalStatus;
+  startedAt: string;
+  completedAt?: string;
+  progress: number;
+  completeStep(stepNumber: number): Promise<void>;
+  failStep(stepNumber: number, reason: string): Promise<void>;
+}
+
+/**
+ * Client for goal tracking operations
+ */
+export interface GoalsClient {
+  trackGoal(goalId: string, steps: string[]): Promise<GoalTrackingResult>;
+  getGoal(goalId: string): Promise<GoalTrackingResult | undefined>;
+  listGoals(): Promise<GoalTrackingResult[]>;
+  cancelGoal(goalId: string): Promise<boolean>;
+}
+
+/**
+ * Metacognition assessment result
+ */
+export interface MetacognitionAssessment {
+  timestamp: string;
+  response: string;
+  confidence: number;
+  needsReflection: boolean;
+  suggestions: string[];
+}
+
+/**
+ * Client for metacognition operations
+ */
+export interface MetacognitionClient {
+  assessResponse(response: string, confidence: number): Promise<MetacognitionAssessment>;
+  getAssessmentHistory(): Promise<MetacognitionAssessment[]>;
+  getAverageConfidence(): Promise<number>;
+  triggerReflection(): Promise<void>;
+}

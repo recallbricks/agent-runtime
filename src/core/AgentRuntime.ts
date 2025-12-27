@@ -15,6 +15,12 @@ import {
   MemoryContext,
   Logger,
   LLMProvider,
+  WorkingMemoryClient,
+  GoalsClient,
+  MetacognitionClient,
+  WorkingMemorySession,
+  GoalTrackingResult,
+  MetacognitionAssessment,
 } from '../types';
 import { buildConfigFromOptions, createLogger } from '../config';
 import { LLMAdapter } from './LLMAdapter';
@@ -29,7 +35,7 @@ import { RecallBricksClient } from '../api/RecallBricksClient';
 // Runtime Version
 // ============================================================================
 
-const RUNTIME_VERSION = '0.2.0';
+const RUNTIME_VERSION = '1.3.0';
 
 // ============================================================================
 // Agent Runtime Implementation
@@ -52,6 +58,11 @@ export class AgentRuntime {
   private previousTurn?: ConversationTurn;
   private conversationHistory: LLMMessage[] = [];
   private interactionCount = 0;
+
+  // Autonomous agent clients
+  public readonly workingMemory: WorkingMemoryClient;
+  public readonly goals: GoalsClient;
+  public readonly metacognition: MetacognitionClient;
 
   constructor(options: RuntimeOptions) {
     // Build configuration
@@ -135,7 +146,225 @@ export class AgentRuntime {
       });
     }
 
+    // Initialize autonomous agent clients
+    this.workingMemory = this.createWorkingMemoryClient();
+    this.goals = this.createGoalsClient();
+    this.metacognition = this.createMetacognitionClient();
+
     this.logger.info('AgentRuntime initialized successfully');
+  }
+
+  /**
+   * Create working memory client for autonomous agents
+   */
+  private createWorkingMemoryClient(): WorkingMemoryClient {
+    const sessions = new Map<string, WorkingMemorySession>();
+    const apiClient = this.apiClient;
+    const logger = this.logger;
+    const agentId = this.config.agentId;
+
+    return {
+      createSession: async (sessionId: string): Promise<WorkingMemorySession> => {
+        logger.debug('Creating working memory session', { sessionId });
+
+        const session: WorkingMemorySession = {
+          sessionId,
+          agentId,
+          createdAt: new Date().toISOString(),
+          entries: [],
+          async addEntry(key: string, value: unknown, ttl?: number) {
+            const entry = {
+              key,
+              value,
+              timestamp: new Date().toISOString(),
+              expiresAt: ttl ? new Date(Date.now() + ttl).toISOString() : undefined,
+            };
+            this.entries.push(entry);
+            logger.debug('Working memory entry added', { sessionId, key });
+            return entry;
+          },
+          async getEntry(key: string) {
+            const entry = this.entries.find(e => e.key === key);
+            if (entry?.expiresAt && new Date(entry.expiresAt) < new Date()) {
+              return undefined;
+            }
+            return entry;
+          },
+          async removeEntry(key: string) {
+            const index = this.entries.findIndex(e => e.key === key);
+            if (index >= 0) {
+              this.entries.splice(index, 1);
+              return true;
+            }
+            return false;
+          },
+          async clear() {
+            this.entries = [];
+            logger.debug('Working memory session cleared', { sessionId });
+          },
+          async persist() {
+            try {
+              await apiClient.saveMemory({
+                text: JSON.stringify({
+                  type: 'working_memory_session',
+                  sessionId,
+                  entries: this.entries,
+                }),
+                tags: ['working_memory', sessionId],
+                source: 'agent-runtime-autonomous',
+              });
+              logger.debug('Working memory session persisted', { sessionId });
+            } catch (error) {
+              logger.warn('Failed to persist working memory session', { sessionId, error });
+            }
+          },
+        };
+
+        sessions.set(sessionId, session);
+        return session;
+      },
+      getSession: async (sessionId: string): Promise<WorkingMemorySession | undefined> => {
+        return sessions.get(sessionId);
+      },
+      listSessions: async (): Promise<string[]> => {
+        return Array.from(sessions.keys());
+      },
+    };
+  }
+
+  /**
+   * Create goals client for autonomous agents
+   */
+  private createGoalsClient(): GoalsClient {
+    const activeGoals = new Map<string, GoalTrackingResult>();
+    const apiClient = this.apiClient;
+    const logger = this.logger;
+
+    return {
+      trackGoal: async (goalId: string, steps: string[]): Promise<GoalTrackingResult> => {
+        logger.info('Tracking goal', { goalId, stepCount: steps.length });
+
+        const result: GoalTrackingResult = {
+          goalId,
+          steps: steps.map((description, index) => ({
+            stepNumber: index + 1,
+            description,
+            status: 'pending',
+          })),
+          status: 'in_progress',
+          startedAt: new Date().toISOString(),
+          progress: 0,
+          async completeStep(stepNumber: number) {
+            const step = this.steps.find(s => s.stepNumber === stepNumber);
+            if (step) {
+              step.status = 'completed';
+              step.completedAt = new Date().toISOString();
+              this.progress = this.steps.filter(s => s.status === 'completed').length / this.steps.length;
+              logger.debug('Goal step completed', { goalId, stepNumber, progress: this.progress });
+
+              if (this.progress === 1) {
+                this.status = 'completed';
+                this.completedAt = new Date().toISOString();
+              }
+            }
+          },
+          async failStep(stepNumber: number, reason: string) {
+            const step = this.steps.find(s => s.stepNumber === stepNumber);
+            if (step) {
+              step.status = 'failed';
+              step.failureReason = reason;
+              this.status = 'failed';
+              logger.warn('Goal step failed', { goalId, stepNumber, reason });
+            }
+          },
+        };
+
+        activeGoals.set(goalId, result);
+
+        // Persist goal to memory
+        try {
+          await apiClient.saveMemory({
+            text: `Goal started: ${goalId} with ${steps.length} steps: ${steps.join(', ')}`,
+            tags: ['goal', goalId, 'autonomous'],
+            source: 'agent-runtime-autonomous',
+          });
+        } catch (error) {
+          logger.warn('Failed to persist goal', { goalId, error });
+        }
+
+        return result;
+      },
+      getGoal: async (goalId: string): Promise<GoalTrackingResult | undefined> => {
+        return activeGoals.get(goalId);
+      },
+      listGoals: async (): Promise<GoalTrackingResult[]> => {
+        return Array.from(activeGoals.values());
+      },
+      cancelGoal: async (goalId: string): Promise<boolean> => {
+        const goal = activeGoals.get(goalId);
+        if (goal) {
+          goal.status = 'cancelled';
+          logger.info('Goal cancelled', { goalId });
+          return true;
+        }
+        return false;
+      },
+    };
+  }
+
+  /**
+   * Create metacognition client for autonomous agents
+   */
+  private createMetacognitionClient(): MetacognitionClient {
+    const assessments: MetacognitionAssessment[] = [];
+    const logger = this.logger;
+    const reflectionEngine = () => this.reflectionEngine;
+
+    return {
+      assessResponse: async (response: string, confidence: number): Promise<MetacognitionAssessment> => {
+        logger.debug('Assessing response', { responseLength: response.length, confidence });
+
+        const assessment: MetacognitionAssessment = {
+          timestamp: new Date().toISOString(),
+          response: response.substring(0, 500), // Store truncated for memory
+          confidence,
+          needsReflection: confidence < 0.7,
+          suggestions: [],
+        };
+
+        // Add suggestions based on confidence
+        if (confidence < 0.5) {
+          assessment.suggestions.push('Consider gathering more context before responding');
+          assessment.suggestions.push('The response may need verification');
+        } else if (confidence < 0.7) {
+          assessment.suggestions.push('Response confidence is moderate - consider follow-up clarification');
+        }
+
+        // Check if reflection is recommended
+        if (assessment.needsReflection && reflectionEngine()) {
+          assessment.suggestions.push('Triggering background reflection for self-improvement');
+        }
+
+        assessments.push(assessment);
+        return assessment;
+      },
+      getAssessmentHistory: async (): Promise<MetacognitionAssessment[]> => {
+        return [...assessments];
+      },
+      getAverageConfidence: async (): Promise<number> => {
+        if (assessments.length === 0) return 0;
+        return assessments.reduce((sum, a) => sum + a.confidence, 0) / assessments.length;
+      },
+      triggerReflection: async (): Promise<void> => {
+        const engine = reflectionEngine();
+        if (engine) {
+          logger.info('Metacognition triggering reflection');
+          await engine.reflect('manual');
+        } else {
+          logger.warn('Reflection engine not available');
+        }
+      },
+    };
   }
 
   /**
@@ -523,5 +752,47 @@ export class AgentRuntime {
    */
   getApiClient(): RecallBricksClient {
     return this.apiClient;
+  }
+
+  // ============================================================================
+  // Autonomous Agent Convenience Methods
+  // ============================================================================
+
+  /**
+   * Create a working memory session for autonomous task execution
+   * Convenience method that wraps workingMemory.createSession
+   *
+   * @param sessionId - Unique identifier for the session
+   * @returns WorkingMemorySession for storing temporary task state
+   */
+  async createSession(sessionId: string): Promise<WorkingMemorySession> {
+    this.logger.info('Creating autonomous session', { sessionId });
+    return this.workingMemory.createSession(sessionId);
+  }
+
+  /**
+   * Track a goal with defined steps for autonomous execution
+   * Convenience method that wraps goals.trackGoal
+   *
+   * @param goalId - Unique identifier for the goal
+   * @param steps - Array of step descriptions
+   * @returns GoalTrackingResult for monitoring progress
+   */
+  async trackGoal(goalId: string, steps: string[]): Promise<GoalTrackingResult> {
+    this.logger.info('Starting goal tracking', { goalId, steps });
+    return this.goals.trackGoal(goalId, steps);
+  }
+
+  /**
+   * Assess a response with metacognitive analysis
+   * Convenience method that wraps metacognition.assessResponse
+   *
+   * @param response - The response to assess
+   * @param confidence - Confidence level (0-1)
+   * @returns MetacognitionAssessment with suggestions
+   */
+  async assessResponse(response: string, confidence: number): Promise<MetacognitionAssessment> {
+    this.logger.debug('Assessing response with metacognition', { confidence });
+    return this.metacognition.assessResponse(response, confidence);
   }
 }
