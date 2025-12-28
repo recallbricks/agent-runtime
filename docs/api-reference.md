@@ -1,18 +1,25 @@
 # RecallBricks Agent Runtime - API Reference
 
-Complete API documentation for the RecallBricks Agent Runtime.
+Complete API documentation for the RecallBricks Agent Runtime v1.0.0.
 
 ## Table of Contents
 
 - [AgentRuntime](#agentruntime)
+  - [Constructor](#constructor)
+  - [Core Methods](#core-methods)
+  - [Autonomous Properties](#autonomous-properties)
+  - [Autonomous Convenience Methods](#autonomous-convenience-methods)
 - [Types](#types)
 - [Configuration](#configuration)
-- [Adapters](#adapters)
 - [Error Handling](#error-handling)
 
 ## AgentRuntime
 
 The main orchestrator class that coordinates all runtime components.
+
+```typescript
+import { AgentRuntime } from '@recallbricks/runtime';
+```
 
 ### Constructor
 
@@ -28,11 +35,12 @@ new AgentRuntime(options: RuntimeOptions): AgentRuntime
 const runtime = new AgentRuntime({
   agentId: 'my_bot',
   userId: 'user_123',
+  llmProvider: 'anthropic',
   llmApiKey: 'sk-...',
 });
 ```
 
-### Methods
+### Core Methods
 
 #### chat()
 
@@ -63,14 +71,14 @@ console.log(response.metadata.tokensUsed);
 Get the agent's identity and behavioral rules.
 
 ```typescript
-async getIdentity(): Promise<AgentIdentity | undefined>
+getIdentity(): AgentIdentity
 ```
 
-**Returns:** Agent identity or undefined if not loaded
+**Returns:** Agent identity object
 
 **Example:**
 ```typescript
-const identity = await runtime.getIdentity();
+const identity = runtime.getIdentity();
 console.log(identity.name);
 console.log(identity.purpose);
 console.log(identity.traits);
@@ -89,8 +97,8 @@ async getContext(): Promise<MemoryContext | undefined>
 **Example:**
 ```typescript
 const context = await runtime.getContext();
-console.log(`Total memories: ${context.totalMemories}`);
-console.log(`Recent: ${context.recentMemories.length}`);
+console.log(`Total memories: ${context?.totalMemories}`);
+console.log(`Recent: ${context?.recentMemories.length}`);
 ```
 
 #### refreshContext()
@@ -107,9 +115,46 @@ await runtime.refreshContext();
 console.log('Context refreshed');
 ```
 
+#### reflect()
+
+Trigger a manual reflection analysis.
+
+```typescript
+async reflect(): Promise<Reflection>
+```
+
+**Returns:** Reflection with insights and suggestions
+
+**Example:**
+```typescript
+const reflection = await runtime.reflect();
+console.log(reflection.insights);
+console.log(reflection.suggestions);
+```
+
+#### explain()
+
+Explain reasoning for a query (Chain of Thought).
+
+```typescript
+async explain(query: string): Promise<ReasoningTrace>
+```
+
+**Parameters:**
+- `query` - The query to explain reasoning for
+
+**Returns:** ReasoningTrace with step-by-step reasoning
+
+**Example:**
+```typescript
+const trace = await runtime.explain('Why did you recommend that?');
+console.log(trace.steps);
+console.log(trace.conclusion);
+```
+
 #### saveNow()
 
-Immediately save the current conversation turn (normally done automatically).
+Immediately save the current conversation turn.
 
 ```typescript
 async saveNow(): Promise<void>
@@ -134,6 +179,19 @@ await runtime.flush();
 console.log('All saves completed');
 ```
 
+#### shutdown()
+
+Gracefully shutdown the runtime, flushing all pending saves.
+
+```typescript
+async shutdown(): Promise<void>
+```
+
+**Example:**
+```typescript
+await runtime.shutdown();
+```
+
 #### getConversationHistory()
 
 Get the conversation history for the current session.
@@ -154,7 +212,7 @@ for (const msg of history) {
 
 #### clearConversationHistory()
 
-Clear the conversation history for this session (doesn't affect long-term memory).
+Clear the conversation history for this session.
 
 ```typescript
 clearConversationHistory(): void
@@ -170,7 +228,7 @@ runtime.clearConversationHistory();
 Get identity validation statistics.
 
 ```typescript
-getValidationStats(): ValidationStats | undefined
+getValidationStats(): { total: number; byType: Record<string, number>; bySeverity: Record<string, number> } | undefined
 ```
 
 **Returns:** Validation statistics or undefined
@@ -178,9 +236,19 @@ getValidationStats(): ValidationStats | undefined
 **Example:**
 ```typescript
 const stats = runtime.getValidationStats();
-console.log(`Total violations: ${stats.total}`);
-console.log(`By type:`, stats.byType);
+console.log(`Total violations: ${stats?.total}`);
+console.log(`By type:`, stats?.byType);
 ```
+
+#### getReflectionHistory()
+
+Get the history of reflections.
+
+```typescript
+getReflectionHistory(): Reflection[]
+```
+
+**Returns:** Array of past reflections
 
 #### getConfig()
 
@@ -191,6 +259,16 @@ getConfig(): RuntimeConfig
 ```
 
 **Returns:** Current configuration (copy, not mutable)
+
+#### getVersion()
+
+Get the runtime version.
+
+```typescript
+getVersion(): string
+```
+
+**Returns:** Version string (e.g., "1.0.0")
 
 #### updateLLMConfig()
 
@@ -211,6 +289,253 @@ runtime.updateLLMConfig({
 });
 ```
 
+#### getApiClient()
+
+Get the API client for direct access.
+
+```typescript
+getApiClient(): RecallBricksClient
+```
+
+**Returns:** The underlying API client
+
+---
+
+### Autonomous Properties
+
+The AgentRuntime exposes three readonly clients for autonomous agent capabilities.
+
+#### workingMemory
+
+Client for working memory operations.
+
+```typescript
+readonly workingMemory: WorkingMemoryClient
+```
+
+**WorkingMemoryClient Interface:**
+```typescript
+interface WorkingMemoryClient {
+  createSession(sessionId: string): Promise<WorkingMemorySession>;
+  getSession(sessionId: string): Promise<WorkingMemorySession | undefined>;
+  listSessions(): Promise<string[]>;
+}
+```
+
+**Example:**
+```typescript
+// Create a session
+const session = await runtime.workingMemory.createSession('task-001');
+
+// List all sessions
+const sessions = await runtime.workingMemory.listSessions();
+
+// Get existing session
+const existing = await runtime.workingMemory.getSession('task-001');
+```
+
+#### goals
+
+Client for goal tracking operations.
+
+```typescript
+readonly goals: GoalsClient
+```
+
+**GoalsClient Interface:**
+```typescript
+interface GoalsClient {
+  trackGoal(goalId: string, steps: string[]): Promise<GoalTrackingResult>;
+  getGoal(goalId: string): Promise<GoalTrackingResult | undefined>;
+  listGoals(): Promise<GoalTrackingResult[]>;
+  cancelGoal(goalId: string): Promise<boolean>;
+}
+```
+
+**Example:**
+```typescript
+// Track a new goal
+const goal = await runtime.goals.trackGoal('analysis', [
+  'Gather data',
+  'Process data',
+  'Generate report',
+]);
+
+// List all goals
+const goals = await runtime.goals.listGoals();
+
+// Get specific goal
+const existing = await runtime.goals.getGoal('analysis');
+
+// Cancel a goal
+await runtime.goals.cancelGoal('analysis');
+```
+
+#### metacognition
+
+Client for metacognition operations.
+
+```typescript
+readonly metacognition: MetacognitionClient
+```
+
+**MetacognitionClient Interface:**
+```typescript
+interface MetacognitionClient {
+  assessResponse(response: string, confidence: number): Promise<MetacognitionAssessment>;
+  getAssessmentHistory(): Promise<MetacognitionAssessment[]>;
+  getAverageConfidence(): Promise<number>;
+  triggerReflection(): Promise<void>;
+}
+```
+
+**Example:**
+```typescript
+// Assess a response
+const assessment = await runtime.metacognition.assessResponse(
+  'The answer is 42',
+  0.85
+);
+
+// Get assessment history
+const history = await runtime.metacognition.getAssessmentHistory();
+
+// Get average confidence
+const avgConfidence = await runtime.metacognition.getAverageConfidence();
+
+// Trigger reflection
+await runtime.metacognition.triggerReflection();
+```
+
+---
+
+### Autonomous Convenience Methods
+
+These methods provide quick access to common autonomous operations.
+
+#### createSession()
+
+Create a working memory session for autonomous task execution.
+
+```typescript
+async createSession(sessionId: string): Promise<WorkingMemorySession>
+```
+
+**Parameters:**
+- `sessionId` - Unique identifier for the session
+
+**Returns:** WorkingMemorySession for storing temporary task state
+
+**Example:**
+```typescript
+const session = await runtime.createSession('task-001');
+await session.addEntry('objective', 'Complete analysis');
+await session.addEntry('data', { values: [1, 2, 3] });
+```
+
+**WorkingMemorySession Interface:**
+```typescript
+interface WorkingMemorySession {
+  sessionId: string;
+  agentId: string;
+  createdAt: string;
+  entries: WorkingMemoryEntry[];
+
+  addEntry(key: string, value: unknown, ttl?: number): Promise<WorkingMemoryEntry>;
+  getEntry(key: string): Promise<WorkingMemoryEntry | undefined>;
+  removeEntry(key: string): Promise<boolean>;
+  clear(): Promise<void>;
+  persist(): Promise<void>;
+}
+```
+
+#### trackGoal()
+
+Track a goal with defined steps for autonomous execution.
+
+```typescript
+async trackGoal(goalId: string, steps: string[]): Promise<GoalTrackingResult>
+```
+
+**Parameters:**
+- `goalId` - Unique identifier for the goal
+- `steps` - Array of step descriptions
+
+**Returns:** GoalTrackingResult for monitoring progress
+
+**Example:**
+```typescript
+const goal = await runtime.trackGoal('data-pipeline', [
+  'Load dataset',
+  'Clean data',
+  'Transform data',
+  'Export results',
+]);
+
+// Complete steps as you progress
+await goal.completeStep(1);
+console.log(`Progress: ${goal.progress * 100}%`);
+
+await goal.completeStep(2);
+await goal.completeStep(3);
+await goal.completeStep(4);
+console.log(`Status: ${goal.status}`); // 'completed'
+```
+
+**GoalTrackingResult Interface:**
+```typescript
+interface GoalTrackingResult {
+  goalId: string;
+  steps: GoalStep[];
+  status: GoalStatus;  // 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
+  startedAt: string;
+  completedAt?: string;
+  progress: number;    // 0 to 1
+
+  completeStep(stepNumber: number): Promise<void>;
+  failStep(stepNumber: number, reason: string): Promise<void>;
+}
+```
+
+#### assessResponse()
+
+Assess a response with metacognitive analysis.
+
+```typescript
+async assessResponse(response: string, confidence: number): Promise<MetacognitionAssessment>
+```
+
+**Parameters:**
+- `response` - The response to assess
+- `confidence` - Confidence level (0-1)
+
+**Returns:** MetacognitionAssessment with suggestions
+
+**Example:**
+```typescript
+const assessment = await runtime.assessResponse(
+  'Based on the data, I recommend option A',
+  0.75
+);
+
+console.log(`Confidence: ${assessment.confidence}`);
+console.log(`Needs reflection: ${assessment.needsReflection}`);
+console.log(`Suggestions:`, assessment.suggestions);
+```
+
+**MetacognitionAssessment Interface:**
+```typescript
+interface MetacognitionAssessment {
+  timestamp: string;
+  response: string;
+  confidence: number;
+  needsReflection: boolean;
+  suggestions: string[];
+}
+```
+
+---
+
 ## Types
 
 ### RuntimeOptions
@@ -225,23 +550,46 @@ interface RuntimeOptions {
 
   // LLM Configuration
   llmApiKey?: string;
-  llmProvider?: LLMProvider;      // 'anthropic' | 'openai' | 'cohere' | 'local'
+  llmProvider?: LLMProvider;
   llmModel?: string;
 
   // RecallBricks Configuration
   apiUrl?: string;
-  tier?: RecallBricksTier;        // 'starter' | 'professional' | 'enterprise'
+  apiKey?: string;
+  tier?: RecallBricksTier;
+
+  // Agent Metadata
+  agentName?: string;
+  agentPurpose?: string;
 
   // Behavior
-  autoSave?: boolean;             // Default: true
-  validateIdentity?: boolean;     // Default: true
-  cacheEnabled?: boolean;         // Default: true
-  cacheTTL?: number;              // Default: 300000 (5 min)
-  maxContextTokens?: number;      // Default: 4000
+  autoSave?: boolean;
+  validateIdentity?: boolean;
+  cacheEnabled?: boolean;
+  cacheTTL?: number;
+  maxContextTokens?: number;
 
-  // Debug
-  debug?: boolean;                // Default: false
+  // Modes
+  debug?: boolean;
+  mcpMode?: boolean;
+  registerAgent?: boolean;
 }
+```
+
+### LLMProvider
+
+Supported LLM providers.
+
+```typescript
+type LLMProvider = 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'cohere' | 'local';
+```
+
+### RecallBricksTier
+
+RecallBricks service tiers.
+
+```typescript
+type RecallBricksTier = 'starter' | 'professional' | 'enterprise';
 ```
 
 ### ChatResponse
@@ -301,7 +649,7 @@ interface Memory {
   id: string;
   content: string;
   type: 'conversation' | 'fact' | 'observation' | 'insight';
-  importance: number;             // 0-1
+  importance: number;
   timestamp: string;
   metadata?: Record<string, unknown>;
   tags?: string[];
@@ -319,17 +667,37 @@ interface LLMMessage {
 }
 ```
 
-### ValidationStats
+### WorkingMemoryEntry
 
-Identity validation statistics.
+Entry in working memory.
 
 ```typescript
-interface ValidationStats {
-  total: number;
-  byType: Record<string, number>;
-  bySeverity: Record<string, number>;
+interface WorkingMemoryEntry {
+  key: string;
+  value: unknown;
+  timestamp: string;
+  expiresAt?: string;
 }
 ```
+
+### GoalStep
+
+Individual step in a goal.
+
+```typescript
+interface GoalStep {
+  stepNumber: number;
+  description: string;
+  status: GoalStepStatus;
+  completedAt?: string;
+  failureReason?: string;
+}
+
+type GoalStepStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+type GoalStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+```
+
+---
 
 ## Configuration
 
@@ -350,12 +718,6 @@ RECALLBRICKS_API_URL=optional
 RECALLBRICKS_LLM_PROVIDER=optional
 RECALLBRICKS_LLM_MODEL=optional
 RECALLBRICKS_TIER=optional
-RECALLBRICKS_AUTO_SAVE=optional
-RECALLBRICKS_VALIDATE_IDENTITY=optional
-RECALLBRICKS_CACHE_ENABLED=optional
-RECALLBRICKS_CACHE_TTL=optional
-RECALLBRICKS_MAX_CONTEXT_TOKENS=optional
-RECALLBRICKS_DEBUG=optional
 ```
 
 **Example:**
@@ -374,17 +736,6 @@ Build configuration from options object.
 function buildConfigFromOptions(options: RuntimeOptions): RuntimeConfig
 ```
 
-**Example:**
-```typescript
-import { buildConfigFromOptions } from '@recallbricks/runtime';
-
-const config = buildConfigFromOptions({
-  agentId: 'my_bot',
-  userId: 'user_123',
-  llmApiKey: 'sk-...',
-});
-```
-
 ### createLogger()
 
 Create a logger instance.
@@ -393,93 +744,25 @@ Create a logger instance.
 function createLogger(debug?: boolean): Logger
 ```
 
-**Example:**
-```typescript
-import { createLogger } from '@recallbricks/runtime';
+### ConfigBuilder
 
-const logger = createLogger(true);
-logger.info('Hello');
-logger.debug('Debug message');
-```
-
-## Adapters
-
-### REST API Server
-
-Express.js server that wraps the AgentRuntime.
+Fluent configuration builder.
 
 ```typescript
-import { RecallBricksAPIServer } from '@recallbricks/runtime/adapters/api';
+import { ConfigBuilder } from '@recallbricks/runtime';
 
-const server = new RecallBricksAPIServer(3000);
-server.start();
+const config = new ConfigBuilder()
+  .agentId('my_bot')
+  .userId('user_123')
+  .llmProvider('anthropic')
+  .llmApiKey('sk-...')
+  .tier('starter')
+  .build();
+
+const runtime = new AgentRuntime(config);
 ```
 
-**Endpoints:**
-
-```
-POST   /init                   Initialize runtime
-POST   /chat                   Send message
-GET    /context                Get memory context
-GET    /identity               Get agent identity
-POST   /context/refresh        Refresh context
-GET    /history                Get conversation history
-POST   /history/clear          Clear history
-POST   /flush                  Flush pending saves
-GET    /stats/validation       Get validation stats
-GET    /health                 Health check
-```
-
-### MCP Server
-
-MCP server for Claude Desktop integration.
-
-```typescript
-import { RecallBricksMCPServer } from '@recallbricks/runtime/adapters/mcp';
-
-const server = new RecallBricksMCPServer();
-await server.initialize({
-  agentId: 'my_bot',
-  userId: 'user_123',
-  llmApiKey: 'sk-...',
-});
-
-await server.startStdio();
-```
-
-**MCP Tools:**
-- `recallbricks_chat`
-- `recallbricks_get_context`
-- `recallbricks_get_identity`
-- `recallbricks_refresh_context`
-- `recallbricks_get_history`
-- `recallbricks_clear_history`
-
-### Python SDK
-
-Python wrapper for the runtime.
-
-```python
-from recallbricks import AgentRuntime
-
-runtime = AgentRuntime(
-    agent_id='my_bot',
-    user_id='user_123',
-    llm_api_key='sk-...'
-)
-
-response = runtime.chat('Hello!')
-```
-
-**Methods:**
-- `chat(message, conversation_history=None) -> ChatResponse`
-- `get_identity() -> AgentIdentity`
-- `get_context() -> MemoryContext`
-- `refresh_context() -> None`
-- `get_conversation_history() -> List[LLMMessage]`
-- `clear_conversation_history() -> None`
-- `flush() -> None`
-- `get_validation_stats() -> ValidationStats`
+---
 
 ## Error Handling
 
@@ -508,6 +791,8 @@ class LLMError extends RecallBricksError {
 ### Error Handling Example
 
 ```typescript
+import { APIError, ConfigurationError, LLMError } from '@recallbricks/runtime';
+
 try {
   const response = await runtime.chat('Hello');
 } catch (error) {
@@ -524,89 +809,33 @@ try {
 }
 ```
 
-## Advanced Usage
+---
 
-### Custom Context Loading
+## Exports
 
-```typescript
-// Load context manually
-const context = await runtime.getContext();
-
-// Process memories
-for (const memory of context.recentMemories) {
-  console.log(`[${memory.type}] ${memory.content}`);
-  console.log(`Importance: ${memory.importance}`);
-}
-```
-
-### Monitoring Identity Violations
+All public exports from the package:
 
 ```typescript
-setInterval(() => {
-  const stats = runtime.getValidationStats();
-  if (stats && stats.total > 100) {
-    console.warn(`High violation count: ${stats.total}`);
-    console.warn('Consider reviewing agent prompt or identity settings');
-  }
-}, 60000); // Check every minute
+// Core
+export { AgentRuntime } from './core/AgentRuntime';
+export { LLMAdapter } from './core/LLMAdapter';
+export { ContextLoader } from './core/ContextLoader';
+export { ContextWeaver } from './core/ContextWeaver';
+export { AutoSaver } from './core/AutoSaver';
+export { IdentityValidator } from './core/IdentityValidator';
+export { ReflectionEngine } from './core/ReflectionEngine';
+
+// API
+export { RecallBricksClient } from './api/RecallBricksClient';
+
+// Configuration
+export { buildConfigFromEnv, buildConfigFromOptions, createLogger, ConfigBuilder } from './config';
+
+// Types
+export * from './types';
 ```
 
-### Graceful Shutdown
-
-```typescript
-process.on('SIGINT', async () => {
-  console.log('Shutting down...');
-  await runtime.flush();
-  console.log('All conversations saved');
-  process.exit(0);
-});
-```
-
-### Multi-Agent System
-
-```typescript
-const agents = {
-  support: new AgentRuntime({
-    agentId: 'support_bot',
-    userId: customerId,
-    llmApiKey: key,
-  }),
-  sales: new AgentRuntime({
-    agentId: 'sales_bot',
-    userId: customerId,
-    llmApiKey: key,
-  }),
-};
-
-// Route to appropriate agent
-const response = await agents[botType].chat(message);
-```
-
-## Performance Tips
-
-1. **Enable Caching:**
-   ```typescript
-   cacheEnabled: true,
-   cacheTTL: 300000  // 5 minutes
-   ```
-
-2. **Optimize Context Tokens:**
-   ```typescript
-   maxContextTokens: 4000  // Adjust based on your needs
-   ```
-
-3. **Use Auto-Save:**
-   ```typescript
-   autoSave: true  // Non-blocking background saves
-   ```
-
-4. **Monitor Queue Depth:**
-   ```typescript
-   const queueSize = runtime['autoSaver'].getQueueSize();
-   if (queueSize > 100) {
-     console.warn('Save queue is backed up');
-   }
-   ```
+---
 
 ## License
 

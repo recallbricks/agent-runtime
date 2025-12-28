@@ -1,6 +1,6 @@
 # RecallBricks Agent Runtime - Quickstart Guide
 
-Get started with RecallBricks in 5 minutes.
+Get started with RecallBricks Agent Runtime v1.0.0 in 5 minutes.
 
 ## What is RecallBricks?
 
@@ -8,13 +8,14 @@ RecallBricks is a universal cognitive runtime that turns any LLM into a persiste
 - **Continuous Memory** - Automatically saves and loads conversation context
 - **Stable Identity** - Maintains consistent personality across sessions
 - **Self-Improving Intelligence** - Learns from every interaction
+- **Autonomous Agent Support** - Working memory, goal tracking, and metacognition
 
 ## Installation
 
 ### TypeScript/JavaScript
 
 ```bash
-npm install @recallbricks/runtime
+npm install @recallbricks/runtime@1.0.0
 ```
 
 ### Python
@@ -33,6 +34,7 @@ import { AgentRuntime } from '@recallbricks/runtime';
 const runtime = new AgentRuntime({
   agentId: 'my_bot',
   userId: 'user_123',
+  llmProvider: 'anthropic',
   llmApiKey: process.env.ANTHROPIC_API_KEY,
 });
 
@@ -55,7 +57,7 @@ response = runtime.chat('Hello!')
 print(response.response)
 ```
 
-## Complete Example
+## Complete Example with Memory
 
 Let's build a customer support agent with persistent memory.
 
@@ -88,10 +90,10 @@ async function main() {
     debug: true,
   });
 
-  console.log('✓ Runtime initialized\n');
+  console.log('Runtime initialized\n');
 
   // Get agent identity
-  const identity = await runtime.getIdentity();
+  const identity = runtime.getIdentity();
   console.log(`Agent: ${identity?.name}`);
   console.log(`Purpose: ${identity?.purpose}\n`);
 
@@ -112,7 +114,7 @@ async function main() {
   // When the user returns tomorrow, it will remember everything
 
   await runtime.flush();
-  console.log('✓ All conversations saved');
+  console.log('All conversations saved');
 }
 
 main();
@@ -123,6 +125,51 @@ main();
 ```bash
 npm run build
 node dist/your-script.js
+```
+
+## First Agent with Autonomous Features
+
+RecallBricks v1.0.0 includes autonomous agent capabilities. Here's a quick example:
+
+```typescript
+import { AgentRuntime } from '@recallbricks/runtime';
+
+async function main() {
+  const runtime = new AgentRuntime({
+    agentId: 'autonomous_agent',
+    userId: 'user_123',
+    llmProvider: 'anthropic',
+    llmApiKey: process.env.ANTHROPIC_API_KEY!,
+  });
+
+  // 1. Create a working memory session
+  const session = await runtime.createSession('task-001');
+  await session.addEntry('objective', 'Complete user onboarding');
+  await session.addEntry('step', 1);
+
+  // 2. Track a goal
+  const goal = await runtime.trackGoal('onboarding', [
+    'Collect user preferences',
+    'Setup initial configuration',
+    'Send welcome message',
+  ]);
+
+  // 3. Process with chat
+  const response = await runtime.chat('Help me get started');
+
+  // 4. Assess the response
+  const assessment = await runtime.assessResponse(response.response, 0.85);
+  console.log(`Confidence: ${assessment.confidence}`);
+  console.log(`Needs reflection: ${assessment.needsReflection}`);
+
+  // 5. Mark goal step complete
+  await goal.completeStep(1);
+  console.log(`Progress: ${goal.progress * 100}%`);
+
+  await runtime.shutdown();
+}
+
+main();
 ```
 
 ## Key Features
@@ -186,64 +233,19 @@ const runtime2 = new AgentRuntime({
   llmApiKey: openaiKey,
   // ...
 });
-```
 
-## Next Steps
-
-### Use Cases
-
-**Customer Support:**
-```typescript
-// Remember customer issues, preferences, history
-const support = new AgentRuntime({
-  agentId: 'support_bot',
-  userId: customerId,
+// Gemini
+const runtime3 = new AgentRuntime({
+  llmProvider: 'gemini',
+  llmApiKey: geminiKey,
   // ...
 });
-```
 
-**Sales Assistant:**
-```typescript
-// Track leads, conversations, deal status
-const sales = new AgentRuntime({
-  agentId: 'sales_assistant',
-  userId: leadId,
+// Ollama (local)
+const runtime4 = new AgentRuntime({
+  llmProvider: 'ollama',
   // ...
 });
-```
-
-**Personal AI Assistant:**
-```typescript
-// Remember tasks, preferences, context
-const assistant = new AgentRuntime({
-  agentId: 'personal_assistant',
-  userId: userId,
-  // ...
-});
-```
-
-### Advanced Usage
-
-**Custom Context Refresh:**
-```typescript
-// Manually refresh context (bypasses cache)
-await runtime.refreshContext();
-```
-
-**Conversation History:**
-```typescript
-// Get current session history
-const history = runtime.getConversationHistory();
-
-// Clear history (keeps long-term memory)
-runtime.clearConversationHistory();
-```
-
-**Validation Stats:**
-```typescript
-// Monitor identity violations
-const stats = runtime.getValidationStats();
-console.log(`Violations: ${stats?.total}`);
 ```
 
 ## Configuration Options
@@ -251,23 +253,38 @@ console.log(`Violations: ${stats?.total}`);
 ### All Options
 
 ```typescript
+import { AgentRuntime } from '@recallbricks/runtime';
+
 const runtime = new AgentRuntime({
   // Required
   agentId: 'your_agent',
   userId: 'your_user',
-  llmApiKey: 'your_key',
 
-  // Optional
-  apiUrl: 'https://api.recallbricks.com',
-  llmProvider: 'anthropic',          // anthropic, openai, cohere, local
+  // LLM Configuration
+  llmProvider: 'anthropic',           // 'anthropic' | 'openai' | 'gemini' | 'ollama' | 'cohere' | 'local'
+  llmApiKey: 'your_key',
   llmModel: 'claude-sonnet-4-5-20250929',
-  tier: 'starter',                   // starter, professional, enterprise
-  autoSave: true,                    // Auto-save conversations
-  validateIdentity: true,            // Validate agent identity
-  cacheEnabled: true,                // Enable context caching
-  cacheTTL: 300000,                  // Cache TTL (ms)
-  maxContextTokens: 4000,            // Max context tokens
-  debug: false,                      // Debug logging
+
+  // RecallBricks Configuration
+  apiUrl: 'https://api.recallbricks.com',
+  apiKey: 'your_recallbricks_key',
+  tier: 'starter',                    // 'starter' | 'professional' | 'enterprise'
+
+  // Behavior
+  autoSave: true,                     // Auto-save conversations
+  validateIdentity: true,             // Validate agent identity
+  cacheEnabled: true,                 // Enable context caching
+  cacheTTL: 300000,                   // Cache TTL (ms) - 5 minutes
+  maxContextTokens: 4000,             // Max context tokens
+
+  // Agent Metadata
+  agentName: 'My Agent',
+  agentPurpose: 'Helpful assistant',
+
+  // Debug
+  debug: false,                       // Debug logging
+  mcpMode: false,                     // MCP integration mode
+  registerAgent: false,               // Register with RecallBricks
 });
 ```
 
@@ -284,7 +301,7 @@ RECALLBRICKS_TIER=starter
 ```
 
 ```typescript
-import { buildConfigFromEnv } from '@recallbricks/runtime';
+import { buildConfigFromEnv, AgentRuntime } from '@recallbricks/runtime';
 
 const config = buildConfigFromEnv();
 const runtime = new AgentRuntime(config);
@@ -341,56 +358,18 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-## Troubleshooting
+## Next Steps
 
-### Runtime not initializing
-
-Check that required fields are set:
-```typescript
-// Required:
-agentId: 'non-empty-string'
-userId: 'non-empty-string'
-llmApiKey: 'valid-api-key'
-```
-
-### Context not loading
-
-Verify API connectivity:
-```typescript
-const runtime = new AgentRuntime({
-  // ...
-  debug: true,  // Enable debug logging
-});
-```
-
-Check logs for API errors.
-
-### Identity validation failing
-
-Review validation stats:
-```typescript
-const stats = runtime.getValidationStats();
-console.log(stats);
-```
-
-High violation counts may indicate aggressive auto-correction. Can be disabled:
-```typescript
-validateIdentity: false
-```
+1. **[API Reference](./api-reference.md)** - Complete API documentation
+2. **[Autonomous Features](./autonomous-features.md)** - Working memory, goals, metacognition
+3. **[Examples](./examples.md)** - Working code examples
+4. **[Troubleshooting](./troubleshooting.md)** - Common issues and solutions
 
 ## Getting Help
 
 - **Documentation:** [/docs](.)
 - **Examples:** [/examples](../examples)
 - **Architecture:** [architecture.md](./architecture.md)
-- **API Reference:** [api-reference.md](./api-reference.md)
 - **Issues:** [GitHub Issues](https://github.com/recallbricks/agent-runtime/issues)
-
-## What's Next?
-
-1. **Explore examples** in `/examples` directory
-2. **Read architecture docs** to understand internals
-3. **Review API reference** for advanced features
-4. **Build your first agent!**
 
 Welcome to cognitive infrastructure for AI systems.
